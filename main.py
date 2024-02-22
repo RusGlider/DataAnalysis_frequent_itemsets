@@ -2,6 +2,7 @@
 from mlxtend.frequent_patterns import apriori, association_rules
 from mlxtend.frequent_patterns import fpgrowth
 from mlxtend.preprocessing import TransactionEncoder
+from prettytable import PrettyTable
 #import pyfpgrowth
 from pyECLAT import ECLAT
 from pyECLAT import Example1, Example2
@@ -125,7 +126,7 @@ def fpgrowth_analyze(dataset, min_support = 1.0, item_count = 7):
     return frequent_itemsets, t_2 - t_1
 
 
-def visualize_results(items, supports, title, legend, xlabel='', ylabel='', bar=False, colors=None):
+def visualize_results(items, supports, title, legend, xlabel='', ylabel='', bar=False, colors=None,savename=None):
 
 
     if colors is None:
@@ -141,7 +142,13 @@ def visualize_results(items, supports, title, legend, xlabel='', ylabel='', bar=
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+
+    if savename is not None:
+        plt.savefig(savename+'.png')
+
     plt.show()
+
+
 
 def get_lengths_and_counts(df):
 
@@ -154,17 +161,9 @@ def get_lengths_and_counts(df):
 
 
 
-if __name__ == '__main__':
+def task1(dataset):
 
-    ex1 = Example1().get()
-    print(ex1)
 
-    dataset = [['Milk', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
-               ['Dill', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
-               ['Milk', 'Apple', 'Kidney Beans', 'Eggs'],
-               ['Milk', 'Unicorn', 'Corn', 'Kidney Beans', 'Yogurt'],
-               ['Corn', 'Onion', 'Onion', 'Kidney Beans', 'Ice cream', 'Eggs']
-               ]
 
     #apriori_analyze()
 
@@ -173,13 +172,8 @@ if __name__ == '__main__':
     #eclat
     #fpgrowth
     #Подготовьте список частых наборов, в которых не более семи объектов (разумное количество).
-    #Визуализация на каждом наборе поддержки
 
 
-
-
-    #количество частых наборов объектов различной длины на фиксированном наборе данных при изменяемом пороге поддержки.
-    # вернуть
     item_count = 7
     min_supports = [0.01,0.03,0.05,0.10,0.15,0.20]
 
@@ -215,7 +209,8 @@ if __name__ == '__main__':
         title='Быстродействие алгоритмов при разной поддержке',
         legend=['apriori','eclat','fpgrowth'],
         xlabel='Поддержка',
-        ylabel='Быстродействие, с'
+        ylabel='Быстродействие, с',
+        savename='Быстродействие'
         )
 
     # общее количество частых наборов объектов на фиксированном наборе данных при изменяемом пороге поддержки;
@@ -228,7 +223,8 @@ if __name__ == '__main__':
         title='Количество частых наборов при разной поддержке',
         legend=['apriori', 'eclat', 'fpgrowth'],
         xlabel='Поддержка',
-        ylabel='Количество'
+        ylabel='Количество',
+        savename='ОбщееКоличество'
     )
 
 
@@ -242,7 +238,8 @@ if __name__ == '__main__':
         title='Макс. длина частого набора при разной поддержке',
         legend=['apriori', 'eclat', 'fpgrowth'],
         xlabel='Поддержка',
-        ylabel='Длина'
+        ylabel='Длина',
+        savename='МаксДлина'
     )
 
     # количество частых наборов объектов различной длины на фиксированном наборе данных при изменяемом пороге поддержки.
@@ -260,7 +257,8 @@ if __name__ == '__main__':
             xlabel='Длина',
             ylabel='Количество',
             bar=True,
-            colors = ['r']
+            colors = ['r'],
+            savename=f'КолвоРазнойДлины_apriori_{min_support}'
         )
         visualize_results(
             items=[y_eclat],
@@ -270,7 +268,8 @@ if __name__ == '__main__':
             xlabel='Длина',
             ylabel='Количество',
             bar=True,
-            colors = ['g']
+            colors = ['g'],
+            savename=f'КолвоРазнойДлины_eclat_{min_support}'
         )
         visualize_results(
             items=[y_fpgrowth],
@@ -280,12 +279,9 @@ if __name__ == '__main__':
             xlabel='Длина',
             ylabel='Количество',
             bar=True,
-            colors = ['b']
+            colors = ['b'],
+            savename=f'КолвоРазнойДлины_fpgrowth_{min_support}'
         )
-
-
-
-
 
 
     """
@@ -320,3 +316,149 @@ if __name__ == '__main__':
     #print(rules.head())
 
 
+
+def draw_table_rules(rules, confidence, item_count):
+    rules = rules[rules.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count, axis=1)]
+
+    rules.sort_values(by='confidence', ascending=False)
+    # table = PrettyTable(['antecedent -> consequent','support','confidence'])
+    table = PrettyTable(['antecedent', '==>', 'consequent', 'support', 'confidence'])
+    for idx, row in rules[['antecedents', 'consequents', 'support', 'confidence']].iterrows():
+        table.add_row(
+            [f'{list(row["antecedents"])}', ' ==> ', f'{list(row["consequents"])}', row['support'], row['confidence']])
+    #    table.add_row([f'{list(row["antecedents"])} ==> {list(row["consequents"])}',row['support'], row['confidence']])
+    print(f'table for confidence {confidence}')
+    print(table)
+    print()
+
+
+def find_association_rules(itemsets, confidence):
+    t1 = time.time()
+    rules = association_rules(itemsets, metric="confidence", min_threshold=confidence)
+    t2 = time.time()
+    #print(f'time elapsed:{t2 - t1}')
+    return rules, t2-t1
+def task2(dataset):
+    min_support = 0.1
+    item_count = 7
+
+    print(f'experiment for support {min_support}')
+    itemsets_apriori, _ = apriori_analyze(dataset, min_support, item_count)
+    itemsets_eclat, _ = eclat_analyze(dataset, min_support, item_count)
+    itemsets_fpgrowth, _ = fpgrowth_analyze(dataset, min_support, item_count)
+
+    #apriori_itemsets_collection.append(itemsets_apriori)
+    #eclat_itemsets_collection.append(itemsets_eclat)
+    #fpgrowth_itemsets_collection.append(itemsets_fpgrowth)
+
+
+
+
+    apriori_itemsets_collection = []
+    eclat_itemsets_collection = []
+    fpgrowth_itemsets_collection = []
+
+    times_apriori = []
+    times_eclat = []
+    times_fpgrowth = []
+
+    confidences = [0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+    for confidence in confidences:
+        rules_apriori, time_apriori = find_association_rules(itemsets_apriori,confidence)
+        rules_eclat, time_eclat = find_association_rules(itemsets_eclat,confidence)
+        rules_fpgrowth, time_fpgrowth = find_association_rules(itemsets_fpgrowth,confidence)
+
+        times_apriori.append(time_apriori)
+        times_eclat.append(time_eclat)
+        times_fpgrowth.append(time_fpgrowth)
+
+        apriori_itemsets_collection.append(rules_apriori)
+        eclat_itemsets_collection.append(rules_eclat)
+        fpgrowth_itemsets_collection.append(rules_fpgrowth)
+
+
+        #TODO отрисовать таблицы
+        #draw_table_rules(rules, confidence, item_count)
+        """
+        rules = rules[rules.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count, axis=1)]
+
+        rules.sort_values(by='confidence', ascending=False)
+        #table = PrettyTable(['antecedent -> consequent','support','confidence'])
+        table = PrettyTable(['antecedent','==>','consequent', 'support', 'confidence'])
+        for idx, row in rules[['antecedents','consequents','support','confidence']].iterrows():
+            table.add_row([f'{list(row["antecedents"])}',' ==> ', f'{list(row["consequents"])}', row['support'], row['confidence']])
+        #    table.add_row([f'{list(row["antecedents"])} ==> {list(row["consequents"])}',row['support'], row['confidence']])
+        print(f'table for confidence {confidence}')
+        print(table)
+        print()
+        """
+
+
+
+    #сравнение быстродействия поиска правил на фиксированном наборе данных при изменяемом пороге достоверности;
+    visualize_results(
+        items=[times_apriori,times_eclat,times_fpgrowth],
+        supports=confidences,
+        title='Быстродействие поиска правил при разной достоверности',
+        legend=['apriori','eclat','fpgrowth'],
+        xlabel='Достоверность',
+        ylabel='Быстродействие, с',
+        #savename='ассоц_Быстродействие'
+        )
+
+    #общее количество найденных правил на фиксированном наборе данных при изменяемом пороге достоверности;
+    counts_apriori = [len(item) for item in apriori_itemsets_collection]
+    counts_eclat = [len(item) for item in eclat_itemsets_collection]
+    counts_fpgrowth = [len(item) for item in fpgrowth_itemsets_collection]
+    visualize_results(
+        items=[counts_apriori, counts_eclat, counts_fpgrowth],
+        supports=confidences,
+        title='Количество правил при разной достоверности',
+        legend=['apriori', 'eclat', 'fpgrowth'],
+        xlabel='Достоверность',
+        ylabel='Количество',
+        #savename='ассоц_ОбщееКоличество'
+    )
+
+    #максимальное количество объектов в правиле на фиксированном наборе данных при изменяемом пороге достоверности;
+
+    #rules = rules[rules.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count, axis=1)]
+
+    itemlen_apriori = [max(item.apply(lambda row: len(row['antecedents']) + len(row['consequents']),axis=1).values) for item in apriori_itemsets_collection]
+    itemlen_eclat = [max(item.apply(lambda row: len(row['antecedents']) + len(row['consequents']),axis=1).values) for item in eclat_itemsets_collection]
+    itemlen_fpgrowth = [max(item.apply(lambda row: len(row['antecedents']) + len(row['consequents']),axis=1).values) for item in fpgrowth_itemsets_collection]
+    visualize_results(
+        items=[itemlen_apriori, itemlen_eclat, itemlen_fpgrowth],
+        supports=confidences,
+        title='Макс. количество объектов в правиле при разной достоверности',
+        legend=['apriori', 'eclat', 'fpgrowth'],
+        xlabel='Достоверность',
+        ylabel='Длина',
+        #savename='ассоц_МаксДлина'
+    )
+
+    #количество правил, в которых антецедент и консеквент суммарно включают в себя не более семи объектов, на фиксированном наборе данных при изменяемом пороге достоверности.
+    items_lt_item_count_apriori = [ len(item[item.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count,axis=1)]) for item in apriori_itemsets_collection]
+    items_lt_item_count_eclat = [ len(item[item.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count,axis=1)]) for item in eclat_itemsets_collection]
+    items_lt_item_count_fpgrowth = [ len(item[item.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count,axis=1)]) for item in fpgrowth_itemsets_collection]
+
+    visualize_results(
+        items=[items_lt_item_count_apriori, items_lt_item_count_eclat, items_lt_item_count_fpgrowth],
+        supports=confidences,
+        title=f'Кол-во правил не более {item_count} объектов при разной достоверности',
+        legend=['apriori', 'eclat', 'fpgrowth'],
+        xlabel='Достоверность',
+        ylabel='Длина',
+        # savename='ассоц_МаксДлина'
+    )
+
+if __name__ == '__main__':
+    dataset = [['Milk', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
+               ['Dill', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
+               ['Milk', 'Apple', 'Kidney Beans', 'Eggs'],
+               ['Milk', 'Unicorn', 'Corn', 'Kidney Beans', 'Yogurt'],
+               ['Corn', 'Onion', 'Onion', 'Kidney Beans', 'Ice cream', 'Eggs']
+               ]
+
+    #task1(dataset)
+    task2(dataset)
