@@ -66,14 +66,7 @@ def prepare_dataset():
 
 
 def apriori_analyze(dataset, min_support = 1.0, item_count = 7):
-    print('experiment: apriori')
-    #df = pd.read_csv('transaction_data.csv')
-    #data = df.to_numpy()
-    #new_data = np.array([item.split(',') for item in sublist][0] for sublist in data)
-
-    #df_encoded = pd.read_csv('transaction_data_encoded.csv')
-    #df_encoded_part = df_encoded.iloc[:2000]
-    #print(df_encoded_part)
+    #print('experiment: apriori')
 
     te = TransactionEncoder()
     te_ary = te.fit(dataset).transform(dataset)
@@ -81,15 +74,10 @@ def apriori_analyze(dataset, min_support = 1.0, item_count = 7):
 
     print('started apriori')
     t_1 = time.time()
-    frequent_itemsets = apriori(df, min_support=min_support, use_colnames=True)
+    frequent_itemsets = apriori(df, min_support=min_support, use_colnames=True, low_memory=True)
     t_2 = time.time()
     print(f'time taken: {t_2-t_1} s')
-    #print(frequent_itemsets)
 
-    #rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.5)
-    #print("Association Rules:")
-    #print(rules)
-    #print('ended apriori')
     return frequent_itemsets, t_2-t_1
 
 def eclat_analyze(dataset, min_support = 1.0, item_count = 7):
@@ -109,6 +97,7 @@ def eclat_analyze(dataset, min_support = 1.0, item_count = 7):
     frequent_itemsets['itemsets'] = frequent_itemsets['itemsets'].str.split(' & ')
     frequent_itemsets = frequent_itemsets[['support','itemsets']]
     frequent_itemsets['itemsets'] = frequent_itemsets['itemsets'].apply(frozenset)
+
 
     return frequent_itemsets, t_2 - t_1
 
@@ -162,17 +151,6 @@ def get_lengths_and_counts(df):
 
 
 def task1(dataset):
-
-
-
-    #apriori_analyze()
-
-    # Варьируйте пороговое значение поддержки (например: 1%, 3%, 5%, 10%, 15%, 20%)
-    #apriori
-    #eclat
-    #fpgrowth
-    #Подготовьте список частых наборов, в которых не более семи объектов (разумное количество).
-
 
     item_count = 7
     min_supports = [0.01,0.03,0.05,0.10,0.15,0.20]
@@ -317,7 +295,7 @@ def task1(dataset):
 
 
 
-def draw_table_rules(rules, confidence, item_count):
+def draw_table_rules(rules, confidence, item_count,max_draw=100,out_name=None):
     rules = rules[rules.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count, axis=1)]
 
     rules.sort_values(by='confidence', ascending=False)
@@ -328,7 +306,12 @@ def draw_table_rules(rules, confidence, item_count):
             [f'{list(row["antecedents"])}', ' ==> ', f'{list(row["consequents"])}', row['support'], row['confidence']])
     #    table.add_row([f'{list(row["antecedents"])} ==> {list(row["consequents"])}',row['support'], row['confidence']])
     print(f'table for confidence {confidence}')
-    print(table)
+
+    print(f'table {out_name}')
+    print(table.get_string(start=0, end=max_draw))
+    if out_name is not None:
+        with open(out_name+'.txt','w') as file:
+            file.write(table.get_string(start=0, end=max_draw))
     print()
 
 
@@ -362,8 +345,9 @@ def task2(dataset):
     times_eclat = []
     times_fpgrowth = []
 
-    confidences = [0.70, 0.75, 0.80, 0.85, 0.90, 0.95]
+    confidences = [0.75, 0.80, 0.90, 0.95]
     for confidence in confidences:
+        print(f'finding association rules for confidence {confidence}')
         rules_apriori, time_apriori = find_association_rules(itemsets_apriori,confidence)
         rules_eclat, time_eclat = find_association_rules(itemsets_eclat,confidence)
         rules_fpgrowth, time_fpgrowth = find_association_rules(itemsets_fpgrowth,confidence)
@@ -378,7 +362,11 @@ def task2(dataset):
 
 
         #TODO отрисовать таблицы
-        #draw_table_rules(rules, confidence, item_count)
+        draw_table_rules(rules_apriori, confidence, item_count, out_name=f'rules_apriori_{confidence}')
+        draw_table_rules(rules_eclat, confidence, item_count, out_name=f'rules_eclat_{confidence}')
+        draw_table_rules(rules_fpgrowth, confidence, item_count, out_name=f'rules_fpgrowth_{confidence}')
+
+
         """
         rules = rules[rules.apply(lambda row: len(row['antecedents']) + len(row['consequents']) <= item_count, axis=1)]
 
@@ -393,8 +381,7 @@ def task2(dataset):
         print()
         """
 
-
-
+    print('visualization')
     #сравнение быстродействия поиска правил на фиксированном наборе данных при изменяемом пороге достоверности;
     visualize_results(
         items=[times_apriori,times_eclat,times_fpgrowth],
@@ -403,7 +390,7 @@ def task2(dataset):
         legend=['apriori','eclat','fpgrowth'],
         xlabel='Достоверность',
         ylabel='Быстродействие, с',
-        #savename='ассоц_Быстродействие'
+        savename='ассоц_Быстродействие'
         )
 
     #общее количество найденных правил на фиксированном наборе данных при изменяемом пороге достоверности;
@@ -417,7 +404,7 @@ def task2(dataset):
         legend=['apriori', 'eclat', 'fpgrowth'],
         xlabel='Достоверность',
         ylabel='Количество',
-        #savename='ассоц_ОбщееКоличество'
+        savename='ассоц_ОбщееКоличество'
     )
 
     #максимальное количество объектов в правиле на фиксированном наборе данных при изменяемом пороге достоверности;
@@ -434,7 +421,7 @@ def task2(dataset):
         legend=['apriori', 'eclat', 'fpgrowth'],
         xlabel='Достоверность',
         ylabel='Длина',
-        #savename='ассоц_МаксДлина'
+        savename='ассоц_МаксДлина'
     )
 
     #количество правил, в которых антецедент и консеквент суммарно включают в себя не более семи объектов, на фиксированном наборе данных при изменяемом пороге достоверности.
@@ -449,16 +436,28 @@ def task2(dataset):
         legend=['apriori', 'eclat', 'fpgrowth'],
         xlabel='Достоверность',
         ylabel='Длина',
-        # savename='ассоц_МаксДлина'
+        savename=f'ассоц_КолПравилДо{item_count}'
     )
+    
+
 
 if __name__ == '__main__':
+    df = pd.read_csv('transaction_data.csv')
+    data = df.to_numpy()
+    new_data = list([item.split(',') for item in sublist][0] for sublist in data)
+
+    #df_encoded = pd.read_csv('transaction_data_encoded.csv')
+    #df_encoded_part = df_encoded.iloc[:2000]
+    #print(df_encoded_part)
+    dataset = new_data[:5]
+    print(dataset)
+    """
     dataset = [['Milk', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
                ['Dill', 'Onion', 'Nutmeg', 'Kidney Beans', 'Eggs', 'Yogurt'],
                ['Milk', 'Apple', 'Kidney Beans', 'Eggs'],
                ['Milk', 'Unicorn', 'Corn', 'Kidney Beans', 'Yogurt'],
                ['Corn', 'Onion', 'Onion', 'Kidney Beans', 'Ice cream', 'Eggs']
                ]
-
+    """
     #task1(dataset)
-    task2(dataset)
+    #task2(dataset)
