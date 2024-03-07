@@ -48,9 +48,10 @@ def experiment_f(x_train, x_test, y_train):
     y_pred = bernoulli_nb.fit(x_train, y_train).predict(x_test)
     return y_pred
 
-def classification_experiment(x, y, algorithm, algname='', random_state=42):
-    test_sizes = [0.05 * i for i in range(1, 20)]  # [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
-
+def classification_experiment(x, y, algorithm, algname='', random_state=42, test_sizes=None):
+    #  # [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
+    if test_sizes is None:
+        test_sizes = [0.05 * i for i in range(1, 20)]
     results = pd.DataFrame(columns=['test_size', 'accuracy', 'precision', 'recall', 'F_measure'])
 
     for test_size in test_sizes:
