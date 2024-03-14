@@ -161,4 +161,4 @@ if __name__ == '__main__':
     #print(accuracy_score([0,1,1,0],[1,1,1,0]))
     x,y = load_dataset_apple_quality()
     classification_experiment(x, y, experiment_gaussian, algname='gaussian', random_state=0)
-    #classification_experiment(x, y, experiment_bernoulli, algname='bernoulli')
+    #classification_experiment(x, y, experiment_bernoulli, algname='bernoulli', random_state=0)
